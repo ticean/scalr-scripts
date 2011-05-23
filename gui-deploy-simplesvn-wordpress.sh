@@ -3,17 +3,14 @@
 # GUI: DEPLOY: Simple SVN: Wordpress
 #
 # Description: Performs a simple SVN Checkout.
-#              Can be useful to avoid the shared directory.
 #              Includes specific actions for WP.
 # 
 # Author: Ticean Bennett 
 # Copyright (c) 2010 Guidance Solutions, Inc., All Rights Reserved
 #
-# TODO: Write the SVN revision, so we can output to REVISION file.
-#
 # Parameters:
 # ------------
-#
+# $STAGE        -- Active stage. Used to copy configurations.
 # $APPLICATION  -- The name of the application.
 # $DEPLOY_PATH  -- The deploy path, as in capistrano. Not currently used. 
 #                  Assumes /var/www/APPLICATION.
@@ -26,6 +23,7 @@
 #############################################################################
 set -e
 
+STAGE="%stage%"
 APPLICATION="%application%"
 DEPLOY_PATH="/var/www/%application%"
 SVN_PATH="/usr/bin/svn"
@@ -56,19 +54,24 @@ fi
 
 ## General Preparation
 echo "Preparing to deploy..."
-echo "Creating directory: $DEPLOY_PATH "
-mkdir -p "$DEPLOY_PATH"
+#echo "Creating directory: $DEPLOY_PATH "
+#mkdir -p "$DEPLOY_PATH"
 
-## TODO: Get the SVN revision, so we can output to REVISION file.
 
 ## If the deploy directory doesn't exist checkout, otherwise update.
-if [ ! -e "$DEPLOY_PATH" ] then
+## TODO: Better checking here.
+if [ ! -e "$DEPLOY_PATH" ]; then
     echo "executing svn checkout -q --username $SVN_USERNAME --password XXXXXXXX --no-auth-cache  -r$SVN_REVISION $SVN_REPO_URL $DEPLOY_PATH"
     $SVN_PATH checkout -q --username $SVN_USERNAME --password $SVN_PASSWORD --no-auth-cache  -r$SVN_REVISION $SVN_REPO_URL $DEPLOY_PATH
-elif
-    echo "executing svn update -q --username $SVN_USERNAME --password XXXXXXXX --no-auth-cache  -r$SVN_REVISION"
-    $SVN_PATH update -q --username $SVN_USERNAME --password $SVN_PASSWORD --no-auth-cache  -r$SVN_REVISION
+else
+    echo "executing svn update -q --username $SVN_USERNAME --password XXXXXXXX --no-auth-cache  -r$SVN_REVISION" $DEPLOY_PATH
+    $SVN_PATH update -q --username $SVN_USERNAME --password $SVN_PASSWORD --no-auth-cache  -r$SVN_REVISION $DEPLOY_PATH
 fi
+
+REVISION=$(svn info $DEPLOY_PATH/ | grep '^Revision:' | sed -e 's/^Revision: //')
+echo $REVISION
+echo "Writing revision $REVISION to $DEPLOY_PATH/REVISION" 
+echo $REVISION > "$DEPLOY_PATH/REVISION"
 
 # Check if anything was downloaded - the directory is not empty.
 #[ "$(du -s $DEPLOY_PATH| cut -f1)" -gt "8" ] || exit -1
@@ -76,8 +79,8 @@ fi
 
 ## TODO: Probably don't need to do this. Can at least be more restrictive.
 ## Release/Deploy date of the application
-## echo "Changing ownership 775 on $DEPLOY_PATH..."
-## chmod -R 775 "$DEPLOY_PATH"
+echo "Changing ownership 775 on $DEPLOY_PATH..."
+chmod -R 775 "$DEPLOY_PATH"
 
 
 ## -----------------------------------------------------------------------------
@@ -97,13 +100,8 @@ chmod -R 775 $DEPLOY_PATH/wp-content/gallery
 
 ## Assumes configuration files exist in SVN.
 ## We'll allow it to fail so the site doesn't break.
-cp $DEPLOY_PATH/db-settings.production.php $DEPLOY_PATH/db-settings.php
-cp $DEPLOY_PATH/wp-config.production.php $DEPLOY_PATH/wp-config.php
+cp "$DEPLOY_PATH/db-settings.$STAGE.php" "$DEPLOY_PATH/db-settings.php"
+cp "$DEPLOY_PATH/wp-config.$STAGE.php" "$DEPLOY_PATH/wp-config.php"
 
 
-## -----------------------------------------------------------------------------
 
-## Link the Apache document root to the current app dir
-echo "Linking the Apache document root to the current working application directory..."
-[ -h "$current_dir" ] && unlink "$current_dir"
-ln -nfs "$apache_doc_pointer" "$current_dir"
