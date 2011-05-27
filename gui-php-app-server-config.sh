@@ -25,11 +25,19 @@ apt-get install curl libcurl3 libcurl3-dev php5-curl php5-mcrypt -y
 echo "Installing PHP GD"
 apt-get install php5-gd -y
 
-echo "Enabling mod_rewrite..."
+
+echo "Installing PEAR/PECL."
+apt-get install php-pear php5-dev apache2-dev -y
+
+echo "Installing apc."
+printf "yes\n" | pecl install apc
+echo "extension=apc.so" > /etc/php5/apache2/conf.d/apc.ini 
+
+
+echo "Enabling Apache module: rewrite"
 test -f "/etc/apache2/mods-available/rewrite.load" && ln -s /etc/apache2/mods-available/rewrite.load /etc/apache2/mods-enabled/rewrite.load
 
-
-echo "Enabling Apache modul: headers"
+echo "Enabling Apache module: headers"
 a2enmod headers
 
 echo "Enabling Apache module: expires"
