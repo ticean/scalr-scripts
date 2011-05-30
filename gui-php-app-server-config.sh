@@ -9,7 +9,7 @@
 ##############################################################################
 
 echo "Installing Subversion..."
-apt-get install subversion -y
+apt-get install subversion git-core -y
 
 
 echo "Installing MySQL Client..."
