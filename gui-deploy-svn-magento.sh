@@ -30,7 +30,7 @@ SVN_REPO_URL="%svn_repo_url%"
 SVN_REVISION="%svn_revision%"
 SVN_USERNAME="%svn_username%"
 SVN_PASSWORD="%svn_password%"
-
+RELEASES_TO_KEEP=5
 
 if [ -z "$SVN_PATH" ]; then
       SVN_PATH="/usr/bin/svn"
@@ -110,6 +110,12 @@ chown -R www-data:www-data "$deploy_dir/media"
 echo "Linking the Apache document root to the current working application directory..."
 [ -h "$current_dir" ] && unlink "$current_dir"
 ln -nfs "$deploy_dir" "$current_dir"
+
+
+## Maintain configured number of releases in history
+echo "Removing old release directories..."
+let RELEASES_TO_KEEP=RELEASES_TO_KEEP+1
+rm -rf `ls -d1r $content_dir/* | tail -n +$RELEASES_TO_KEEP`
 
 
 #######################################
